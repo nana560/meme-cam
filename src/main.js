@@ -10,6 +10,7 @@ let animFrameId = null;
 let statusEl = null;
 let loadingEl = null;
 let loadingTextEl = null;
+let videoEl = null;
 
 async function main() {
   statusEl = document.getElementById('status-text');
@@ -19,28 +20,47 @@ async function main() {
 
   try {
     updateLoading('正在启动摄像头...');
-    const videoEl = await startCamera();
+    videoEl = await startCamera();
 
-    updateLoading('正在下载AI姿态模型 (约5MB)...');
+    updateLoading('正在加载AI模型 (约20MB)...');
     await initDetectors();
     initDisplay();
 
-    updateLoading('就绪！');
+    hideLoading();
     setStatus('就绪 - 试试做动作吧！');
-    if (loadingEl) {
-      loadingEl.style.opacity = '0';
-      loadingEl.style.transition = 'opacity 0.3s';
-      setTimeout(() => { loadingEl.style.display = 'none'; }, 300);
-    }
-
     downloadBtn.addEventListener('click', downloadMeme);
+
     running = true;
     detectionLoop(videoEl);
   } catch (err) {
-    updateLoading('初始化失败', true);
-    setStatus(err.message, true);
-    setTimeout(() => { if (loadingEl) loadingEl.style.display = 'none'; }, 3000);
     console.error('Initialization error:', err);
+    showError(err.message || '初始化失败，请刷新页面重试');
+    setStatus(err.message, true);
+  }
+}
+
+function hideLoading() {
+  if (loadingEl) {
+    loadingEl.style.opacity = '0';
+    loadingEl.style.transition = 'opacity 0.3s';
+    setTimeout(() => { loadingEl.style.display = 'none'; }, 300);
+  }
+}
+
+function showError(msg) {
+  if (loadingEl && loadingTextEl) {
+    loadingTextEl.textContent = msg;
+    loadingTextEl.style.color = '#ff6b6b';
+    const existing = loadingEl.querySelector('.retry-btn');
+    if (!existing) {
+      const btn = document.createElement('button');
+      btn.className = 'retry-btn';
+      btn.textContent = '重新加载';
+      btn.style.cssText = 'margin-top:20px;padding:10px 28px;border:none;border-radius:24px;'
+        + 'background:#00ff88;color:#000;font-size:14px;font-weight:600;cursor:pointer;';
+      btn.addEventListener('click', () => window.location.reload());
+      loadingEl.appendChild(btn);
+    }
   }
 }
 
@@ -57,11 +77,11 @@ function detectionLoop(videoEl) {
 
   const timestamp = performance.now();
   const poseLandmarks = detectPose(videoEl, timestamp);
-  const faceLandmarks = detectFace(videoEl, timestamp);
+  const faceData = detectFace(videoEl, timestamp);
 
-  updateSkeletonOverlay(poseLandmarks, faceLandmarks, videoEl);
+  updateSkeletonOverlay(poseLandmarks, faceData, videoEl);
 
-  const detectedIds = detectGestures(poseLandmarks, faceLandmarks);
+  const detectedIds = detectGestures(poseLandmarks, faceData);
   const matchedMeme = matchMeme(detectedIds);
   updateMemeDisplay(matchedMeme);
 
@@ -74,6 +94,19 @@ function setStatus(msg, isError = false) {
     statusEl.style.color = isError ? '#ff6b6b' : '#aaa';
   }
 }
+
+// --- Page lifecycle ---
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    running = false;
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+  } else if (videoEl && videoEl.readyState >= 2) {
+    running = true;
+    resetGestureStates();
+    detectionLoop(videoEl);
+  }
+});
 
 // Clean shutdown
 function cleanup() {

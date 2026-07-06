@@ -9,8 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@mediapipe/tasks-vision": "^0.10.18",
-    "playwright": "^1.61.1"
+    "@mediapipe/tasks-vision": "^0.10.18"
   },
   "devDependencies": {
     "vite": "^5.4.0"

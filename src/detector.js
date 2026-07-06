@@ -1,8 +1,9 @@
 import { PoseLandmarker, FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 
-const WASM_BASE = '/wasm';
-const POSE_MODEL = '/models/pose_landmarker_lite.task';
-const FACE_MODEL = '/models/face_landmarker.task';
+const BASE = import.meta.env.BASE_URL;
+const WASM_BASE = `${BASE}wasm`;
+const POSE_MODEL = `${BASE}models/pose_landmarker_lite.task`;
+const FACE_MODEL = `${BASE}models/face_landmarker.task`;
 
 let poseLandmarker = null;
 let faceLandmarker = null;
