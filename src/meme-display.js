@@ -9,7 +9,7 @@ export function initDisplay() {
   canvasCtx = canvas.getContext('2d');
 }
 
-export function updateSkeletonOverlay(poseLandmarks, faceLandmarks, videoEl) {
+export function updateSkeletonOverlay(poseLandmarks, faceData, videoEl) {
   if (!canvasCtx) return;
   const canvas = canvasCtx.canvas;
   canvas.width = videoEl.videoWidth || 640;
@@ -20,8 +20,8 @@ export function updateSkeletonOverlay(poseLandmarks, faceLandmarks, videoEl) {
     lastSkeletonPose = poseLandmarks;
     drawPoseSkeleton(poseLandmarks);
   }
-  if (faceLandmarks) {
-    drawFaceMesh(faceLandmarks);
+  if (faceData && faceData.landmarks) {
+    drawFaceMesh(faceData.landmarks);
   }
 }
 

@@ -1,7 +1,6 @@
 // Gesture recognition: analyzes landmarks to identify body gestures and facial expressions
 import { MEME_MAP } from './config.js';
 
-// Per-entry state for gesture detection
 const gestureStates = new Map();
 
 function getState(entryId) {
@@ -9,7 +8,6 @@ function getState(entryId) {
   return gestureStates.get(entryId);
 }
 
-// Normalize pose landmarks to relative coordinates for scale/position invariance
 function normalizePose(landmarks) {
   if (!landmarks) return null;
   const ls = landmarks[11], rs = landmarks[12];
@@ -28,7 +26,7 @@ function normalizePose(landmarks) {
 
 let prevPose = null;
 
-export function detectGestures(poseLandmarks, faceLandmarks) {
+export function detectGestures(poseLandmarks, faceData) {
   const results = [];
 
   // Body gesture detection
@@ -48,12 +46,15 @@ export function detectGestures(poseLandmarks, faceLandmarks) {
     prevPose = null;
   }
 
-  // Facial expression detection
-  if (faceLandmarks) {
-    const fm = faceLandmarks;
+  // Facial expression detection using blendshapes
+  if (faceData && faceData.blendshapes) {
+    const bs = {};
+    for (const item of faceData.blendshapes) {
+      bs[item.categoryName] = item.score;
+    }
     for (const entry of MEME_MAP) {
       if (entry.type !== 'face') continue;
-      if (entry.trigger(fm)) {
+      if (entry.trigger(bs, faceData.landmarks)) {
         results.push(entry.id);
       }
     }

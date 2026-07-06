@@ -1,62 +1,48 @@
 // 24 meme mappings: gesture/expression → meme image
-// Each entry: id, name, type(pose/face/both), check function, meme path, category
+// face triggers receive (blendshapes, landmarks) where blendshapes is {categoryName: score}
+
+function avg(a, b) { return (a + b) / 2; }
 
 export const MEME_MAP = [
   // === 身体动作 (Pose-based, 15) ===
   {
-    id: 'cover-face',
-    name: '捂脸',
-    type: 'pose',
+    id: 'cover-face', name: '捂脸', type: 'pose',
     trigger: (kp) => {
       const nose = kp[0];
       const lw = kp[15], rw = kp[16];
-      const lDist = Math.hypot(lw.x - nose.x, lw.y - nose.y);
-      const rDist = Math.hypot(rw.x - nose.x, rw.y - nose.y);
-      return lDist < 0.12 && rDist < 0.12;
+      return Math.hypot(lw.x - nose.x, lw.y - nose.y) < 0.12 && Math.hypot(rw.x - nose.x, rw.y - nose.y) < 0.12;
     },
-    meme: '/memes/panda-cover-face.svg',
-    category: '熊猫头',
+    meme: '/memes/panda-cover-face.svg', category: '熊猫头',
   },
   {
-    id: 'hands-up',
-    name: '举手投降',
-    type: 'pose',
+    id: 'hands-up', name: '举手投降', type: 'pose',
     trigger: (kp) => {
       const nose = kp[0];
       const lw = kp[15], rw = kp[16];
       return lw.y < nose.y - 0.15 && rw.y < nose.y - 0.15;
     },
-    meme: '/memes/panda-hands-up.svg',
-    category: '熊猫头',
+    meme: '/memes/panda-hands-up.svg', category: '熊猫头',
   },
   {
-    id: 'peace-sign',
-    name: '比耶',
-    type: 'pose',
+    id: 'peace-sign', name: '比耶', type: 'pose',
     trigger: (kp) => {
       const shoulder = kp[12];
       const rw = kp[16];
       return rw.y < shoulder.y - 0.1 && Math.abs(rw.x - shoulder.x) < 0.15;
     },
-    meme: '/memes/haaland-smile.svg',
-    category: '哈兰德',
+    meme: '/memes/haaland-smile.svg', category: '哈兰德',
   },
   {
-    id: 'squat',
-    name: '蹲下',
-    type: 'pose',
+    id: 'squat', name: '蹲下', type: 'pose',
     trigger: (kp) => {
       const lh = kp[23], rh = kp[24];
       const lk = kp[25], rk = kp[26];
       return lh.y > lk.y - 0.03 || rh.y > rk.y - 0.03;
     },
-    meme: '/memes/possum-calm.svg',
-    category: '负鼠',
+    meme: '/memes/possum-calm.svg', category: '负鼠',
   },
   {
-    id: 'head-shake',
-    name: '摇头',
-    type: 'pose',
+    id: 'head-shake', name: '摇头', type: 'pose',
     trigger: (kp, prevKp, state) => {
       if (!prevKp) return false;
       const dx = kp[0].x - prevKp[0].x;
@@ -68,124 +54,90 @@ export const MEME_MAP = [
       const changes = state.shakeDirs.slice(-10).filter((s, i, a) => i > 0 && s !== a[i - 1]).length;
       return changes >= 3;
     },
-    meme: '/memes/homelander-shake.svg',
-    category: '黑袍纠察队',
+    meme: '/memes/homelander-shake.svg', category: '黑袍纠察队',
   },
   {
-    id: 'head-tilt',
-    name: '歪头',
-    type: 'pose',
+    id: 'head-tilt', name: '歪头', type: 'pose',
     trigger: (kp) => {
       const le = kp[7], re = kp[8];
       const angle = Math.abs(Math.atan2(re.y - le.y, re.x - le.x) * 180 / Math.PI);
       return angle > 20;
     },
-    meme: '/memes/huh-cat.svg',
-    category: '猫Meme',
+    meme: '/memes/huh-cat.svg', category: '猫Meme',
   },
   {
-    id: 'jump',
-    name: '跳起来',
-    type: 'pose',
+    id: 'jump', name: '跳起来', type: 'pose',
     trigger: (kp, prevKp, state) => {
       if (!state.jumpY) state.jumpY = [];
       state.jumpY.push(kp[0].y);
       if (state.jumpY.length > 10) state.jumpY.shift();
       if (state.jumpY.length < 5) return false;
-      const min = Math.min(...state.jumpY);
-      const max = Math.max(...state.jumpY);
-      return max - min > 0.08;
+      return Math.max(...state.jumpY) - Math.min(...state.jumpY) > 0.08;
     },
-    meme: '/memes/happy-cat.svg',
-    category: '猫Meme',
+    meme: '/memes/happy-cat.svg', category: '猫Meme',
   },
   {
-    id: 'heart-hands',
-    name: '比心',
-    type: 'pose',
+    id: 'heart-hands', name: '比心', type: 'pose',
     trigger: (kp) => {
       const lw = kp[15], rw = kp[16];
       const mid = { x: (kp[11].x + kp[12].x) / 2, y: (kp[11].y + kp[12].y) / 2 };
-      const lDist = Math.hypot(lw.x - mid.x, lw.y - mid.y);
-      const rDist = Math.hypot(rw.x - mid.x, rw.y - mid.y);
-      const wristDist = Math.hypot(lw.x - rw.x, lw.y - rw.y);
-      return lDist < 0.15 && rDist < 0.15 && wristDist < 0.1;
+      return Math.hypot(lw.x - mid.x, lw.y - mid.y) < 0.15
+        && Math.hypot(rw.x - mid.x, rw.y - mid.y) < 0.15
+        && Math.hypot(lw.x - rw.x, lw.y - rw.y) < 0.1;
     },
-    meme: '/memes/mooncat-heart.svg',
-    category: '月薪喵',
+    meme: '/memes/mooncat-heart.svg', category: '月薪喵',
   },
   {
-    id: 'arms-crossed',
-    name: '双手抱胸',
-    type: 'pose',
+    id: 'arms-crossed', name: '双手抱胸', type: 'pose',
     trigger: (kp) => {
       const lw = kp[15], rw = kp[16];
       const le = kp[13], re = kp[14];
       return lw.x > re.x + 0.02 && rw.x < le.x - 0.02;
     },
-    meme: '/memes/panda-just-this.svg',
-    category: '熊猫头',
+    meme: '/memes/panda-just-this.svg', category: '熊猫头',
   },
   {
-    id: 'shrug',
-    name: '摊手',
-    type: 'pose',
+    id: 'shrug', name: '摊手', type: 'pose',
     trigger: (kp) => {
       const lw = kp[15], rw = kp[16];
       const ls = kp[11], rs = kp[12];
       return lw.y < ls.y && rw.y < rs.y && Math.abs(lw.x - ls.x) > 0.15 && Math.abs(rw.x - rs.x) > 0.15;
     },
-    meme: '/memes/panda-dunno.svg',
-    category: '熊猫头',
+    meme: '/memes/panda-dunno.svg', category: '熊猫头',
   },
   {
-    id: 'head-hold',
-    name: '抱头',
-    type: 'pose',
+    id: 'head-hold', name: '抱头', type: 'pose',
     trigger: (kp) => {
       const le = kp[7], re = kp[8];
       const lw = kp[15], rw = kp[16];
-      const lDist = Math.hypot(lw.x - le.x, lw.y - le.y);
-      const rDist = Math.hypot(rw.x - re.x, rw.y - re.y);
-      return lDist < 0.1 && rDist < 0.1;
+      return Math.hypot(lw.x - le.x, lw.y - le.y) < 0.1 && Math.hypot(rw.x - re.x, rw.y - re.y) < 0.1;
     },
-    meme: '/memes/panda-crash.svg',
-    category: '熊猫头',
+    meme: '/memes/panda-crash.svg', category: '熊猫头',
   },
   {
-    id: 'wave',
-    name: '挥手',
-    type: 'pose',
+    id: 'wave', name: '挥手', type: 'pose',
     trigger: (kp, prevKp, state) => {
       if (!prevKp) return false;
-      const rw = kp[16];
-      const rs = kp[12];
+      const rw = kp[16], rs = kp[12];
       if (rw.y > rs.y + 0.05) return false;
       if (!state.waveX) state.waveX = [];
       state.waveX.push(rw.x);
       if (state.waveX.length > 15) state.waveX.shift();
       if (state.waveX.length < 8) return false;
-      const changes = state.waveX.slice(-8).filter((v, i, a) => i > 0 && Math.abs(v - a[i - 1]) > 0.01).length;
-      return changes >= 3;
+      return state.waveX.slice(-8).filter((v, i, a) => i > 0 && Math.abs(v - a[i - 1]) > 0.01).length >= 3;
     },
-    meme: '/memes/grass-cow-bye.svg',
-    category: '草地牛',
+    meme: '/memes/grass-cow-bye.svg', category: '草地牛',
   },
   {
-    id: 'thumbs-up',
-    name: '竖起大拇指',
-    type: 'pose',
+    id: 'thumbs-up', name: '竖起大拇指', type: 'pose',
     trigger: (kp) => {
       const rs = kp[12], rw = kp[16];
       return rw.y < rs.y - 0.15 && rw.x > rs.x;
     },
-    meme: '/memes/haaland-thumbsup.svg',
-    category: '哈兰德',
+    meme: '/memes/haaland-thumbsup.svg', category: '哈兰德',
   },
   {
-    id: 'pray-hands',
-    name: '双手合十',
-    type: 'pose',
+    id: 'pray-hands', name: '双手合十', type: 'pose',
     trigger: (kp) => {
       const lw = kp[15], rw = kp[16];
       const mid = { x: (kp[11].x + kp[12].x) / 2, y: (kp[11].y + kp[12].y) / 2 };
@@ -193,163 +145,67 @@ export const MEME_MAP = [
       const toMid = Math.hypot(lw.x - mid.x, lw.y - mid.y);
       return wristDist < 0.04 && toMid < 0.12;
     },
-    meme: '/memes/panda-please.svg',
-    category: '熊猫头',
+    meme: '/memes/panda-please.svg', category: '熊猫头',
   },
   {
-    id: 'point-forward',
-    name: '指屏幕',
-    type: 'pose',
+    id: 'point-forward', name: '指屏幕', type: 'pose',
     trigger: (kp) => {
       const rs = kp[12], rw = kp[16];
       return rw.y < rs.y - 0.08 && rw.x < rs.x - 0.05;
     },
-    meme: '/memes/genshin-uchiha.svg',
-    category: '原神牛逼',
+    meme: '/memes/genshin-uchiha.svg', category: '原神牛逼',
   },
 
-  // === 面部表情 (Face-based, 9) ===
+  // === 面部表情 (Face blendshapes, 9) ===
   {
-    id: 'big-laugh',
-    name: '大笑',
-    type: 'face',
-    trigger: (fm) => {
-      const upperLip = fm[13], lowerLip = fm[14];
-      const mouthL = fm[61], mouthR = fm[291];
-      const mouthH = Math.hypot(upperLip.x - lowerLip.x, upperLip.y - lowerLip.y);
-      const mouthW = Math.hypot(mouthL.x - mouthR.x, mouthL.y - mouthR.y);
-      return mouthH / mouthW > 0.5;
-    },
-    meme: '/memes/laughing-dragon.svg',
-    category: '大笑奶龙',
+    id: 'big-laugh', name: '大笑', type: 'face',
+    trigger: (bs) => bs.jawOpen > 0.4 && (bs.mouthSmileLeft + bs.mouthSmileRight) / 2 > 0.2,
+    meme: '/memes/laughing-dragon.svg', category: '大笑奶龙',
   },
   {
-    id: 'surprised',
-    name: '惊讶',
-    type: 'face',
-    trigger: (fm) => {
-      const upperLip = fm[13], lowerLip = fm[14];
-      const mouthL = fm[61], mouthR = fm[291];
-      const ul = fm[159], ll = fm[145];
-      const ur = fm[386], lr = fm[374];
-      const mouthH = Math.hypot(upperLip.x - lowerLip.x, upperLip.y - lowerLip.y);
-      const mouthW = Math.hypot(mouthL.x - mouthR.x, mouthL.y - mouthR.y);
-      const leOpen = Math.hypot(ul.x - ll.x, ul.y - ll.y);
-      const reOpen = Math.hypot(ur.x - lr.x, ur.y - lr.y);
-      return mouthH / mouthW > 0.45 && leOpen > 0.025 && reOpen > 0.025;
-    },
-    meme: '/memes/surprised-cat.svg',
-    category: '猫Meme',
+    id: 'surprised', name: '惊讶', type: 'face',
+    trigger: (bs) => bs.jawOpen > 0.25 && (bs.eyeWideLeft + bs.eyeWideRight) / 2 > 0.25,
+    meme: '/memes/surprised-cat.svg', category: '猫Meme',
   },
   {
-    id: 'sad',
-    name: '悲伤',
-    type: 'face',
-    trigger: (fm) => {
-      const mouthL = fm[61], mouthR = fm[291];
-      const lowerLip = fm[14];
-      const midMouth = { x: (mouthL.x + mouthR.x) / 2, y: (mouthL.y + mouthR.y) / 2 };
-      return lowerLip.y > midMouth.y + 0.02;
-    },
-    meme: '/memes/sad-banana-cat.svg',
-    category: '猫Meme',
+    id: 'sad', name: '悲伤', type: 'face',
+    trigger: (bs) => (bs.mouthFrownLeft + bs.mouthFrownRight) / 2 > 0.25,
+    meme: '/memes/sad-banana-cat.svg', category: '猫Meme',
   },
   {
-    id: 'disgust',
-    name: '嫌弃/眯眼',
-    type: 'face',
-    trigger: (fm) => {
-      const ul = fm[159], ll = fm[145];
-      const ur = fm[386], lr = fm[374];
-      const mouthL = fm[61], mouthR = fm[291];
-      const lowerLip = fm[14];
-      const leOpen = Math.hypot(ul.x - ll.x, ul.y - ll.y);
-      const reOpen = Math.hypot(ur.x - lr.x, ur.y - lr.y);
-      const midMouth = { x: (mouthL.x + mouthR.x) / 2, y: (mouthL.y + mouthR.y) / 2 };
-      return leOpen < 0.012 && reOpen < 0.012 && lowerLip.y > midMouth.y + 0.015;
-    },
-    meme: '/memes/old-man-phone.svg',
-    category: '经典',
+    id: 'disgust', name: '嫌弃/眯眼', type: 'face',
+    trigger: (bs) => (bs.eyeSquintLeft + bs.eyeSquintRight) / 2 > 0.35 && bs.jawOpen < 0.2,
+    meme: '/memes/old-man-phone.svg', category: '经典',
   },
   {
-    id: 'smile',
-    name: '微笑',
-    type: 'face',
-    trigger: (fm) => {
-      const mouthL = fm[61], mouthR = fm[291];
-      const lowerLip = fm[14];
-      const midMouth = { x: (mouthL.x + mouthR.x) / 2, y: (mouthL.y + mouthR.y) / 2 };
-      return lowerLip.y < midMouth.y - 0.008 && lowerLip.y > midMouth.y - 0.03;
-    },
-    meme: '/memes/doge.svg',
-    category: '经典',
+    id: 'smile', name: '微笑', type: 'face',
+    trigger: (bs) => (bs.mouthSmileLeft + bs.mouthSmileRight) / 2 > 0.25 && bs.jawOpen < 0.15,
+    meme: '/memes/doge.svg', category: '经典',
   },
   {
-    id: 'poker-face',
-    name: '冷漠/面无表情',
-    type: 'face',
-    trigger: (fm) => {
-      const ul = fm[159], ll = fm[145];
-      const ur = fm[386], lr = fm[374];
-      const upperLip = fm[13], lowerLip = fm[14];
-      const leOpen = Math.hypot(ul.x - ll.x, ul.y - ll.y);
-      const reOpen = Math.hypot(ur.x - lr.x, ur.y - lr.y);
-      const mouthOpen = Math.hypot(upperLip.x - lowerLip.x, upperLip.y - lowerLip.y);
-      return leOpen > 0.01 && leOpen < 0.02 && reOpen > 0.01 && reOpen < 0.02 && mouthOpen < 0.015;
-    },
-    meme: '/memes/capybara.svg',
-    category: '卡皮巴拉',
+    id: 'poker-face', name: '冷漠/面无表情', type: 'face',
+    trigger: (bs) => bs._neutral > 0.9,
+    meme: '/memes/capybara.svg', category: '卡皮巴拉',
   },
   {
-    id: 'wink',
-    name: '挤眉弄眼/眨眼',
-    type: 'face',
-    trigger: (fm) => {
-      const ul = fm[159], ll = fm[145];
-      const ur = fm[386], lr = fm[374];
-      const leOpen = Math.hypot(ul.x - ll.x, ul.y - ll.y);
-      const reOpen = Math.hypot(ur.x - lr.x, ur.y - lr.y);
-      return (leOpen < 0.008 && reOpen > 0.015) || (reOpen < 0.008 && leOpen > 0.015);
-    },
-    meme: '/memes/panda-wink.svg',
-    category: '熊猫头',
+    id: 'wink', name: '挤眉弄眼/眨眼', type: 'face',
+    trigger: (bs) => (bs.eyeBlinkLeft > 0.4 && bs.eyeBlinkRight < 0.1) || (bs.eyeBlinkRight > 0.4 && bs.eyeBlinkLeft < 0.1),
+    meme: '/memes/panda-wink.svg', category: '熊猫头',
   },
   {
-    id: 'pout',
-    name: '嘟嘴',
-    type: 'face',
-    trigger: (fm) => {
-      const mouthL = fm[61], mouthR = fm[291];
-      const upperLip = fm[13];
-      const mouthW = Math.hypot(mouthL.x - mouthR.x, mouthL.y - mouthR.y);
-      const midMouth = { x: (mouthL.x + mouthR.x) / 2, y: (mouthL.y + mouthR.y) / 2 };
-      return mouthW < 0.06 && upperLip.y < midMouth.y - 0.005;
-    },
-    meme: '/memes/mooncat-smell.svg',
-    category: '月薪喵',
+    id: 'pout', name: '嘟嘴', type: 'face',
+    trigger: (bs) => bs.mouthPucker > 0.35,
+    meme: '/memes/mooncat-smell.svg', category: '月薪喵',
   },
   {
-    id: 'eyes-closed',
-    name: '崩溃/闭眼',
-    type: 'face',
-    trigger: (fm) => {
-      const ul = fm[159], ll = fm[145];
-      const ur = fm[386], lr = fm[374];
-      const leOpen = Math.hypot(ul.x - ll.x, ul.y - ll.y);
-      const reOpen = Math.hypot(ur.x - lr.x, ur.y - lr.y);
-      return leOpen < 0.006 && reOpen < 0.006;
-    },
-    meme: '/memes/smile-crash-cat.svg',
-    category: '猫Meme',
+    id: 'eyes-closed', name: '崩溃/闭眼', type: 'face',
+    trigger: (bs) => (bs.eyeBlinkLeft + bs.eyeBlinkRight) / 2 > 0.5,
+    meme: '/memes/smile-crash-cat.svg', category: '猫Meme',
   },
 ];
 
-// Default meme when no gesture detected
 export const DEFAULT_MEME = {
-  id: 'default',
-  name: '等待动作...',
-  type: 'none',
+  id: 'default', name: '等待动作...', type: 'none',
   trigger: () => true,
-  meme: '/memes/default-waiting.svg',
-  category: '系统',
+  meme: '/memes/default-waiting.svg', category: '系统',
 };
